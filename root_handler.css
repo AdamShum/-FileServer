@@ -1,0 +1,86 @@
+body {
+    background-image:url(/d/webserver/image/v_home_bg.png);
+    border-image-repeat:repeat;
+}
+div#div_disknav {
+    min-width: 530px;
+    position:absolute;
+    top:30%;
+    left:20%;
+}
+ul {
+    display:block;
+    height:110px;
+    width:100%;
+    list-style: none;
+    
+
+}
+li {
+    float: left;
+    box-sizing: border-box;
+    position: relative;
+    width: 15%;
+    margin: 10px 3% 0;
+    padding: 1% 1.15% 0;
+    display: list-item;
+ 
+}
+a {
+    
+    height:100%;
+    width:100%;
+    text-decoration:none;
+    background-color:transparent;
+    text-align: center;
+}
+span {
+    
+    display: inline-block;
+    width: 56px;
+    height: 56px;
+    left:50%;
+    line-height: 54px;
+    background-size: 100% 100%;   
+    cursor: pointer;
+    color: #7f7f7f;
+    list-style: none;
+    
+}
+    span.span1 {
+        background-image:url(/d/webserver/image/1.png);
+       /*filter:chroma(color=white)*/
+
+    }
+    span.span2 {
+        background-image:url(/d/webserver/image/2.png);
+    }
+    span.span3 {
+        background-image:url(/d/webserver/image/3.png);
+    }
+    span.span4 {
+        background-image:url(/d/webserver/image/4.png);
+    }
+i {
+    font: 12px/1.5 Tahoma, Helvetica, Arial, 'Microsoft YaHei', sans-serif;
+    font-weight: normal;
+    font-style: normal;
+    font-size: 25px;
+    color: #fff;
+    text-transform: uppercase;
+    line-height:54px;  
+    list-style: none;
+    zoom: 1;
+}
+p {
+    margin:0px;
+    width:100%;
+    font: 15px/1 "Hiragino Sans GB","Microsoft YaHei","WenQuanYi Micro Hei",sans-serif;
+    overflow: hidden;  
+    color: #fff;
+    padding-top: 3px;
+    position:relative;
+    left:-5px;
+    /*border-radius: 7px;
+    border: 1px solid #5e677e;*/
+}
