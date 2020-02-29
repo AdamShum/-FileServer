@@ -24,11 +24,37 @@ public:
 	{
 		return x > 9 ? x + 55 : x + 48;
 	}
+
+	char *replace(char *src, char *sub, char *dst)
+	{
+		int pos = 0;
+		int offset = 0;
+		int srcLen, subLen, dstLen;
+		char *pRet = NULL;
+ 
+		srcLen = strlen(src);
+		subLen = strlen(sub);
+		dstLen = strlen(dst);
+		pRet = (char *)malloc(srcLen + dstLen - subLen + 1);//(外部是否该空间)
+		if (NULL != pRet)
+		{
+			pos = strstr(src, sub) - src;
+			memcpy(pRet, src, pos);
+			offset += pos;
+			memcpy(pRet + offset, dst, dstLen);
+			offset += dstLen;
+			memcpy(pRet + offset, src + pos + subLen, srcLen - pos - subLen);
+			offset += srcLen - pos - subLen;
+			*(pRet + offset) = '\0';
+		}
+		return pRet;
+	}
+
 	void urlEncoding(char *sIn)
 	{
 		int i = 0;
 		int t;
-		char sOut[1024] = "";
+		char sOut[10240] = "";
 		for (int ix = 0; ix < (int)strlen(sIn); ix++)
 		{
 			t = 0;
@@ -111,9 +137,10 @@ public:
 		}
 		i = off;
 		m_reqBuffer[i] = '\0';
+		printf("\n\n\n%s\n\n\n",m_reqBuffer );
 		if (strlen(m_reqBuffer) == 0)
 		{
-			///	printf("刚才出错的地方\n");/////失败的连接
+			///	printf("??????????\n");/////????????
 			return 'y';
 		}
 		fYES = TRUE;
@@ -128,9 +155,13 @@ public:
 				++Ptr;
 			}
 			char    szUrl[4096];
+			char    szUrlOrginal[4096];
 			i = (INT)(Ptr - Prev);
 			memcpy(szUrl, Prev, i);
 			szUrl[i] = '\0';
+
+			memcpy(szUrlOrginal, Prev, i);
+			szUrlOrginal[i] = '\0';
 
 			Ptr = szUrl;
 			while (*Ptr){
@@ -139,10 +170,11 @@ public:
 				}
 				Ptr++;
 			}
-			//		printf ("解码前Url:[%s] LOCAL:%c\r\n",szUrl,local);
+			//		printf ("?????Url:[%s] LOCAL:%c\r\n",szUrl,local);
 			//		printf("strlen(szUrl) %d\n",strlen(szUrl));
 			urldecode(szUrl);
-					printf ("\r\n解码后Url:[%s] \r\n",szUrl);
+		
+					printf ("\r\n?????Url:[%s] \r\n",szUrl);
 			//if (strlen(szUrl)>2 && szUrl[2] == '\\')
 			//{
 			//	local = szUrl[1];
@@ -161,16 +193,19 @@ public:
 			}
 			else{
 				if (strstr(szUrl,".")&&szUrl[strlen(szUrl)-1]!='\\'){
+					int rangeBegan = -1; 
 					if (strstr(m_reqBuffer, "Range")){
-						char * a = strstr(m_reqBuffer, "Range");
-						char * b = strstr(a, "\r\n");
+						char * a = strstr(m_reqBuffer, "Range: bytes=");
+						a += strlen("Range: bytes=");
+						char * b = strstr(a, "-");
 						char c[256] = { 0 };
 						memcpy(c, a, b - a);
 						printf(c);
+						rangeBegan = atoi(c);
 						printf("\n");
 					}
 					printf("file_handler\n");
-					file_handler(fd, szUrl);
+					file_handler(fd, szUrl, rangeBegan,szUrlOrginal);
 				}
 				else {
 					printf("directory_handler\n");
@@ -186,13 +221,47 @@ public:
 	}
 protected:
 
+	void sentVedio(SOCKET fd,char* vedioUrl){
+		char	Buffer[10240] ={0};
+		char	s[10240] = {0};
+		int		k = 0; 
+		//???ó??????	<img src="logo/logo_jw.png">
+		k += sprintf(Buffer, "<html>\r\n"
+			"	<head>\r\n"
+			"		<title>Local Disk</title>\r\n"
+			"		<link rel=\"stylesheet\" type=\"text/css\" href=\"/d/webserver/css/root_handler.css\"/>\r\n"
+			"	</head>\r\n"
+			"	<body>\r\n"
+			"		<div>\r\n"
+		
+			"<video src = \"%s\" controls = \"controls\">< / video>"
+			"		</div>\r\n"
+			"	</body>\r\n"
+			"</html>\r\n",vedioUrl
+								 );
+		int	i = sprintf(s,
+			"HTTP/1.1 200 OK\r\n"
+			"Content-Type: text/html\r\n"
+			"charset: utf8\r\n"
+			"Content-Length: %d\r\n"
+			"Connection: close\r\n\r\n"
+			"%s",
+			k,
+			Buffer
+			);
+	//	printf("%s",s);
+		send(fd, s, i, 0);
+
+		return;
+	}
+
 	void root_handler(SOCKET fd, IN PCHAR szUrl){
 		
-		char	Buffer[MAX_PATH];
-		char	s[MAX_PATH] = {0};
+		char	Buffer[1024] ={0};
+		char	s[1024] = {0};
 		int		k = 0; 
-		//设置初始界面	<img src="logo/logo_jw.png">
-		k += sprintf(&Buffer[k], "<html>\r\n"
+		//???ó??????	<img src="logo/logo_jw.png">
+		k += sprintf(Buffer, "<html>\r\n"
 			"	<head>\r\n"
 			"		<title>Local Disk</title>\r\n"
 			"		<link rel=\"stylesheet\" type=\"text/css\" href=\"/d/webserver/css/root_handler.css\"/>\r\n"
@@ -204,30 +273,30 @@ protected:
 			"					<li class=\"tile\">\r\n"
 			"						<a class=\"link\" href=\"/C\" > \r\n"
 			"							<span class=\"span1\"><i>C</i></span>"
-			"							<p>本地磁盘(C:)</p>\r\n"
+			"							<p>???????(C:)</p>\r\n"
 			"						</a>\r\n"
 			"					</li>\r\n"
 			"					<li class=\"tile\">\r\n"
 			"						<a class=\"link\" href=\"/D\" > \r\n"
 			"							<span class=\"span2\"><i>D</i></span>"
-			"							<p>本地磁盘(D:)</p>\r\n"
+			"							<p>???????(D:)</p>\r\n"
 			"						</a>\r\n"
 			"					</li>\r\n"
 			"					<li class=\"tile\">\r\n"
 			"						<a class=\"link\" href=\"/E\" > \r\n"
 			"							<span class=\"span3\"><i>E</i></span>"
-			"							<p>本地磁盘(E:)</p>\r\n"
+			"							<p>???????(E:)</p>\r\n"
 			"						</a>\r\n"
 			"					</li>\r\n"
 			"					<li class=\"tile\">\r\n"
 			"						<a class=\"link\" href=\"/F\" > \r\n"
 			"							<span class=\"span4\"><i>F</i></span>"
-			"							<p>本地磁盘(F:)</p>\r\n"
+			"							<p>???????(F:)</p>\r\n"
 			"						</a>\r\n"
 			"					</li>\r\n"
 			"				</ul>\r\n"
 			"			</div>\r\n"
-		//	"<video src = \"http://192.168.2.227/d/FTN-024.mp4\" controls = \"controls\">< / video>"
+			"<video src = \"http://192.168.43.44/c/2048.mp4\" controls = \"controls\">< / video>"
 			"		</div>\r\n"
 			"	</body>\r\n"
 			"</html>\r\n"
@@ -235,13 +304,14 @@ protected:
 		int	i = sprintf(s,
 			"HTTP/1.1 200 OK\r\n"
 			"Content-Type: text/html\r\n"
-			"charset = utf8\r\n"
+			"charset: utf8\r\n"
 			"Content-Length: %d\r\n"
-			"Connection:close\r\n\r\n"
+			"Connection: close\r\n\r\n"
 			"%s",
 			k,
 			Buffer
 			);
+	//	printf("%s",s);
 		send(fd, s, i, 0);
 
 		return;
@@ -254,17 +324,18 @@ protected:
 	//
 	void directory_handler(SOCKET fd, IN PCHAR szUrl){
 		char name[1024];
-		char   *szHtml = new char[1024 * 1024];
+		char   *szHtml = new char[1024 * 10240] ;
 		int		t;
 		int		i;
 		int     off = 0; 
 		char local = szUrl[1];
 		char* szUrl1;
+		memset(szHtml,0,1024*10240);
 		printf("directory_handler szurl:%s\n", szUrl);
 		printf("d-handle local:%c\n", local);
-		off += sprintf(&szHtml[off],
+		off += sprintf(szHtml,
 			"<html><head><title>%s</title>"
-			"<link rel=\"stylesheet\" type=\"text/css\" href=\"/d/webserver/css/directory_handler.css\"/>"
+			"<link rel=\"stylesheet\" type=\"text/css\" href=\"/c/webserver/css/directory_handler.css\"/>"
 			"</head><body>\r\n"
 			" <div>\r\n"
 			"			<div id=\"div_disknav\">\r\n"
@@ -272,6 +343,7 @@ protected:
 			szUrl
 			);
 		WIN32_FIND_DATAA fData;
+		printf("off: %d \n%s",off,szHtml);
 		char szFinder[1024];
 		if (szUrl[2]!='\0')
 		 szUrl1 = szUrl + 3;
@@ -291,39 +363,48 @@ protected:
 		}
 		urlEncoding(szUrl1);
 		do {
-			if (0 != (FILE_ATTRIBUTE_DIRECTORY & fData.dwFileAttributes)){
-				if ('.' != fData.cFileName[0])
-				{
+			
 
-					for (t = 0; t<strlen(fData.cFileName); t++)
+			if (0 != (FILE_ATTRIBUTE_DIRECTORY & fData.dwFileAttributes)){
+			
+					if ('.' != fData.cFileName[0])
 					{
-						name[t] = fData.cFileName[t];
+
+						for (t = 0; t<strlen(fData.cFileName); t++)
+						{
+							name[t] = fData.cFileName[t];
+						}
+						name[t] = '\0';
+						
+						//?????
+						char* dirName = new char[10240];
+						memset(dirName, 0, 10240);
+						memcpy(dirName, fData.cFileName, strlen(fData.cFileName) + 1);
+						urlEncoding(dirName);
+						
+						off += wsprintfA(&szHtml[off],	
+							"					<div class=\"tile\">\r\n"
+							"						<a class=\"directory\" href=\"/%c/%s%s/\" > \r\n"
+							"							<span class=\"span1\"><i>    </i></span>"
+							"							<p>%s</p>\r\n"
+							"						</a>\r\n"
+							"					</div>\r\n",
+							local, szUrl1, dirName, name);
+						free(dirName);
 					}
-					name[t] = '\0';
-					
-					//文件夹
-					
-					urlEncoding(fData.cFileName);
-					
-					off += wsprintfA(&szHtml[off],	
-						"					<div class=\"tile\">\r\n"
-						"						<a class=\"directory\" href=\"/%c/%s%s/\" > \r\n"
-						"							<span class=\"span1\"><i>    </i></span>"
-						"							<p>%s</p>\r\n"
-						"						</a>\r\n"
-						"					</div>\r\n",
-						local,szUrl1, fData.cFileName, name);
-				}
+			
 			}
 			else { // file
-				/////////////////////////////////////////////////////文件
+				/////////////////////////////////////////////////////???
 
-				for (t = 0; t<strlen(fData.cFileName); t++)
-				{
-					name[t] = fData.cFileName[t];
+				
+				char* fileName = new char[10240];
+				memset(fileName, 0 ,10240);
+				memcpy(fileName, fData.cFileName, strlen(fData.cFileName)+1);
+				urlEncoding(fileName);
+				if(strstr(fileName,".mp4")){
+					fileName = replace(fileName,".mp4", ".mp4_");
 				}
-				name[t] = '\0';
-				urlEncoding(fData.cFileName);
 				off += wsprintfA(&szHtml[off],
 					"					<div class=\"tile\">\r\n"
 					"						<a class=\"file\" href=\"/%c/%s%s\" > \r\n"
@@ -331,15 +412,12 @@ protected:
 					"							<p>%s</p>\r\n"
 					"						</a>\r\n"
 					"					</div>\r\n",
-					local, szUrl1, fData.cFileName, name);
-				/*off += wsprintfA(&szHtml[off],
-					"<a class=\"file\" href=\"/%c/%s%s\">%s</a>\r\n", 
-					local, szUrl1,fData.cFileName, name);*/
-				//printf("test:%s", szHtml);
-				//////////////////////////////////////////尝试尝试尝试尝试尝试尝试
-				//	off += wsprintf(&szHtml[off],"</br><a href=\"测试\">测试</a>\r\n");	
+					local, szUrl1, fileName, fData.cFileName);
+			
+				
 			}
-		//	off += sprintf(&szHtml[off], "<br />\r\n");
+			
+			int debug =1;
 		} while (FindNextFileA(hFinder, &fData));
 		if (off > 0){
 			off += sprintf(&szHtml[off], "\r\n</div></div></div>\r\n</body></html>\r\n");
@@ -347,7 +425,7 @@ protected:
 			i = sprintf(t,
 				"HTTP/1.1 200 OK\r\n"
 				"Content-Type: text/html\r\n"
-				"Charset:UTF8"
+				"Charset:UTF8\r\n"
 				"Content-Length: %d\r\n"
 				"Connection: close\r\n\r\n"
 				"%s",
@@ -363,17 +441,26 @@ protected:
 	}
 
 	//file handler
-	char file_handler(SOCKET fd, IN PCHAR szUrl){
-		//	if(0==strcmp("\\favicon.ico",szUrl))////当浏览器请求favicon.ico时，忽略其请求
+	char file_handler(SOCKET fd, IN PCHAR szUrl, int rangeBegan, char * szUrlOrginal){
+		if(strstr(szUrl,".mp4_")){
+			szUrlOrginal = replace(szUrlOrginal,".mp4_",".mp4");
+			sentVedio(fd, szUrlOrginal);
+			return ' ';
+		}
+		if(rangeBegan==0)
+		{
+		//	rangeBegan = -1;
+		}
+		//	if(0==strcmp("\\favicon.ico",szUrl))////???????????favicon.ico?????????????
 		//	{
 		//		return local;
 		//	}
-		//	printf("file_handler szUrl:%s\n",szUrl);/////////////////////无本地磁盘的路径
+		//	printf("file_handler szUrl:%s\n",szUrl);/////////////////////?????????·??
 		char local = szUrl[1];
 		unsigned long k;
 		char  szTemp[MAX_PATH];
 		sprintf(szTemp, "%c:%s", local, szUrl+2);
-		printf("file_handler %s\n", szTemp);//////////////绝对路径
+		printf("file_handler %s\n", szTemp);//////////////????·??
 		unsigned long length;
 		FILE *fp = fopen(szTemp, "rb");
 		if (NULL == fp)
@@ -401,57 +488,86 @@ protected:
 		int i;
 		char Temp[4096];
 		i = sprintf(Temp,
-			"HTTP/1.1 200 OK\r\n"
-		//	
+			"HTTP/1.1 206 OK\r\n"	
+			"cache-control: max-age=86400\r\n"
+			"accept-ranges: bytes\r\n"
 			"Content-Lenght: %d\r\n"
 			"Content-Type:aduio/mpeg application/octet-stream image/gif image/jpeg image/x-xbitmap image/pjpeg\r\n"
-			"Content-Range:bytes 0-%d/%d\r\n"
-			"Connection: close\r\n\r\n",
-			length, length-1, length
+			"Content-Range:bytes %d-%d/%d\r\n"
+			"Connection: keep-alive\r\n\r\n",
+			rangeBegan==-1 ? length : length/20 ,
+			rangeBegan==-1 ? 0 : rangeBegan, 
+			(rangeBegan!=-1 && rangeBegan!=0) ?  (length-1) :(rangeBegan + length/20 -1),
+			length
 			);
-		i = send(fd, Temp, i, 0);//文件大小
-		/*	if(length == 0)
+		i = send(fd, Temp, i, 0);//?????С
+	
+		
+		if(rangeBegan == -1)
 		{
-		closesocket(fd);
-		fclose(fp);
-		return local;
+			do
+			{
+				i = 0;
+				
+				k = length - ftell(fp);
+				if (k == 0)
+				{
+					break;
+				}
+				if (k<4096)
+				{
+					fread(Temp, k, 1, fp);
+					Temp[k] = '\0';
+					send(fd, Temp, k + 1, 0);
+				}
+				else
+				{
+					fread(Temp, 4096, 1, fp);
+					send(fd, Temp, 4096, 0);
+					i = 1;
+				}
+				
+			} while (i == 1);
+		
+		
+		
 		}
-		else	if(length<4096)
-		{
-		fread(Temp,length,1,fp);
-		Temp[length] = '\0';
-		send(fd,Temp,length,0);
-		}
-		else
-		while(fread(Temp,4096,1,fp) == 1)
-		{
-		//	printf("%s",Temp);
-		send(fd,Temp,4096,0);
-		}*/
 
-		do
-		{
-			i = 0;
-			k = length - ftell(fp);
-			if (k == 0)
-			{
-				break;
-			}
-			if (k<4096)
-			{
-				fread(Temp, k, 1, fp);
-				Temp[k] = '\0';
-				send(fd, Temp, k + 1, 0);
-			}
-			else
-			{
-				fread(Temp, 4096, 1, fp);
-				send(fd, Temp, 4096, 0);
-				i = 1;
-			}
-			
-		} while (i == 1);
-		printf("传输完毕....!\n");
+
+
+
+		else{
+		
+			fseek(fp, rangeBegan, SEEK_SET);
+		
+			do{
+			    i = 0;
+				
+			//	k = (rangeBegan + length/20) - ftell(fp);
+				k = length - ftell(fp);
+				if(rangeBegan  == 0){
+					k = (rangeBegan + length/20) - ftell(fp);
+				}
+				if (k == 0)
+				{
+					break;
+				}
+				if (k<4096)
+				{
+					fread(Temp, k, 1, fp);
+					Temp[k] = '\0';
+					send(fd, Temp, k + 1, 0);
+				}
+				else
+				{
+					fread(Temp, 4096, 1, fp);
+					send(fd, Temp, 4096, 0);
+					i = 1;
+				}
+				
+			} while (i == 1);
+		}
+		printf("???????....!\n");
 		closesocket(fd);
 		fclose(fp);
 		return local;
